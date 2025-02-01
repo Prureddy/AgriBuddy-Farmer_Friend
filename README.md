@@ -104,13 +104,21 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## Screenshots
 ![Screenshot 2025-02-01 190513](https://github.com/user-attachments/assets/075fc208-8ca2-4f3d-90cd-b3713cbbe24d)
+---------
 ![Screenshot 2025-02-01 190600](https://github.com/user-attachments/assets/729e5f86-d445-4a7e-ac63-6320d0f4b0ef)
+---------
 ![Screenshot 2025-02-01 190537](https://github.com/user-attachments/assets/c0e047c4-f5ba-46c7-b6f5-4a1e27a8b337)
-![Screenshot 2025-02-01 190829](https://github.com/user-attachments/assets/9adec7ca-2f7a-44d9-97d7-13519cd9858e)
-![Screenshot 2025-02-01 190750](https://github.com/user-attachments/assets/15c9e61b-bdba-4b92-b25c-3275b9b93fe8)
+--------
 ![Screenshot 2025-02-01 190644](https://github.com/user-attachments/assets/b8adfb02-ff09-4244-ae76-5b62163e11cf)
+---------
 ![Screenshot 2025-02-01 190631](https://github.com/user-attachments/assets/e390b4f5-ebf7-4b1f-bb32-acc7e88c5092)
+---------
 ![Screenshot 2025-02-01 190619](https://github.com/user-attachments/assets/bb34cf9b-571a-43f8-b6de-a2052d4b9d95)
+---------
+![Screenshot 2025-02-01 190829](https://github.com/user-attachments/assets/9adec7ca-2f7a-44d9-97d7-13519cd9858e)
+---------
+![Screenshot 2025-02-01 190750](https://github.com/user-attachments/assets/15c9e61b-bdba-4b92-b25c-3275b9b93fe8)
+---------
 
 
 
