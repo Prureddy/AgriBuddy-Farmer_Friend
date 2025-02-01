@@ -1,7 +1,9 @@
 from flask import Flask, jsonify,request, render_template
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+import requests
 import os
+
 
 import numpy as np
 import pickle
@@ -12,9 +14,7 @@ import folium
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#loading models
-
-
+from googletrans import Translator
 
 dtr = pickle.load(open('dtr.pkl','rb'))
 preprocessor = pickle.load(open('preprocessor.pkl','rb'))
@@ -25,10 +25,13 @@ preprocessor = pickle.load(open('preprocessor.pkl','rb'))
 
 if "GOOGLE_API_KEY" not in os.environ:
     os.environ["GOOGLE_API_KEY"] = "AIzaSyAInM7kCmXUlF9l7x0wwnE1jl12w3EPh30"
+    
+if "WEATHER_API_KEY" not in os.environ:
+    os.environ["WEATHER_API_KEY"] = "91818ea1ba9041688b961717250102"
 
 # Instantiate the Gemini model
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-pro",
+    model="gemini-1.5-flash",
     temperature=0.7,  # Balance creativity and factual correctness
     timeout=30,       # Allow sufficient time for complex responses
     max_retries=3,   # Retry mechanism in case of failures
@@ -38,7 +41,7 @@ def fetch_data_from_file():
     data = pd.read_csv('yield_df.csv')
     return data
 
-print(sklearn.__version__)
+
 
 def read_csv_data():
     df = pd.read_csv("yield_df.csv")
@@ -54,6 +57,8 @@ matplotlib.use('Agg')  # Use the Agg backend for Matplotlib
 
 #flask app
 app = Flask(__name__)
+
+translator = Translator()
 
 @app.route('/')
 def index():
@@ -400,7 +405,7 @@ def create_yearly_yield_chart():
 def chatbot():
     return render_template('chatbot.html')
 
-@app.route('/ask', methods=['GET', 'POST'])
+@app.route('/farmAI', methods=['GET', 'POST'])
 def ask():
     if request.method == 'GET':
         return render_template('chatbot.html')
@@ -423,7 +428,6 @@ def ask():
             return jsonify({"error": str(e)}), 500
 
 
-
 # Function to handle farmer queries
 def ask_farming_question(query):
     """Handles farmer queries and returns a response."""
@@ -440,8 +444,10 @@ prompt = ChatPromptTemplate.from_messages(
             "system",
             (
                 "You are an agricultural assistant designed to answer farmers' questions. "
+                "You should answer the farmers queries regarding anything about farmers, agriculture in any langauges he enters"
                 "Provide helpful, accurate, and concise answers. If you don't know an answer, "
                 "recommend trusted agricultural resources."
+                ""
             ),
         ),
         ("human", "{query}"),
@@ -449,6 +455,132 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 chain = prompt | llm
+
+
+
+def get_weather(location):
+    """
+    Fetch weather details for a given location using WorldWeatherOnline API.
+    """
+    weather_api_key = "91818ea1ba9041688b961717250102"
+    base_url = "https://api.worldweatheronline.com/premium/v1/weather.ashx"
+
+    params = {
+        'key': weather_api_key,
+        'q': location,
+        'format': 'json',
+        'num_of_days': 1,
+        'includelocation': 'yes'
+    }
+
+    try:
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        #print("Raw API Response:", data)
+
+        if 'data' not in data or 'current_condition' not in data['data']:
+            return "Error: Weather data is missing or invalid."
+
+        current = data['data']['current_condition'][0]
+        location_data = data['data'].get('nearest_area', [{}])[0]
+
+        weather_info = {
+            'location': {
+                'city': location_data.get('areaName', [{}])[0].get('value', 'Unknown'),
+                'region': location_data.get('region', [{}])[0].get('value', 'Unknown'),
+                'country': location_data.get('country', [{}])[0].get('value', 'Unknown')
+            },
+            'temperature': {
+                'celsius': current.get('temp_C', 'N/A'),
+                'fahrenheit': current.get('temp_F', 'N/A')
+            },
+            'humidity': current.get('humidity', 'N/A'),
+            'condition': current['weatherDesc'][0]['value'] if 'weatherDesc' in current else 'N/A',
+            'wind': {
+                'speed_kmph': current.get('windspeedKmph', 'N/A'),
+                'direction': current.get('winddir16Point', 'N/A')
+            },
+            'precipitation': current.get('precipMM', 'N/A'),
+            'visibility': current.get('visibility', 'N/A'),
+            'pressure': current.get('pressure', 'N/A'),
+            'uv_index': current.get('uvIndex', 'N/A'),
+            'last_updated': current.get('observation_time', 'N/A')
+        }
+
+        return weather_info
+
+    except requests.exceptions.RequestException as e:
+        return f"Error fetching weather data: {str(e)}"
+    except KeyError as e:
+        return f"Error parsing weather data: {str(e)}"
+    except Exception as e:
+        return f"Unexpected error: {str(e)}"
+
+def create_agricultural_prompt():
+    """
+    Create a prompt that combines weather data with agricultural context.
+    """
+    prompt = ChatPromptTemplate.from_template(
+        """Act as an expert weather and agricultural advisor. Analyze the following weather conditions and provide:
+        1. A detailed summary of current weather conditions
+        2. Agricultural recommendations specific to these conditions
+        3. Potential risks or concerns for farming activities
+        4. Suggested farming activities suitable for today
+
+        ***Strictly do not include date in the response*** 
+        
+        Weather Data: {weather_data}
+        """
+    )
+    return prompt
+
+def get_agricultural_advice(weather_info):
+    """
+    Get agricultural advice considering weather conditions.
+    """
+    try:
+        prompt = create_agricultural_prompt()
+        chain = prompt | llm
+        response = chain.invoke({"weather_data": str(weather_info)})
+        return response.content if response else "Error: No response from AI."
+    except Exception as e:
+        return f"Error generating advice: {str(e)}"
+    
+@app.route('/weatherAI', methods=['GET', 'POST'])
+def weather_ai():
+    """
+    Flask route to handle WeatherAI requests.
+    Supports both GET and POST methods.
+    """
+    print("Entered function")
+    if request.method == 'GET':
+        return jsonify({"message": "Send a POST request with a 'query' to get weather information."})
+
+    if request.method == 'POST':
+        data = request.get_json()
+
+        if not data or "query" not in data:
+            return jsonify({"error": "Missing 'query' in request body."}), 400
+        
+        location = data["query"].strip()
+
+        if not location:
+            return jsonify({"error": "Please enter a valid location."}), 400
+
+        weather_data = get_weather(location)
+        #print(weather_data)
+
+        if isinstance(weather_data, dict):
+            advice = get_agricultural_advice(weather_data) 
+            #print(advice)
+            response = {
+                "weather_info": weather_data,
+                "agriculture_advice": advice
+            }
+            return jsonify(response)
+        return jsonify({"error": weather_data}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
