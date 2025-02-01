@@ -24,10 +24,10 @@ preprocessor = pickle.load(open('preprocessor.pkl','rb'))
 
 
 if "GOOGLE_API_KEY" not in os.environ:
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyAInM7kCmXUlF9l7x0wwnE1jl12w3EPh30"
+    os.environ["GOOGLE_API_KEY"] = "Google_api_key"
     
 if "WEATHER_API_KEY" not in os.environ:
-    os.environ["WEATHER_API_KEY"] = "91818ea1ba9041688b961717250102"
+    os.environ["WEATHER_API_KEY"] = "weather_api_key"
 
 # Instantiate the Gemini model
 llm = ChatGoogleGenerativeAI(
