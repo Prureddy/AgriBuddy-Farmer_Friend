@@ -1,4 +1,4 @@
-# Crop Yield Prediction
+# AgriBuddy-Farmer_Friend
 
 This project is a web application designed to predict crop yield based on various input parameters and visualize the data through different charts and maps. It also provides a chatbot for answering agricultural queries and weather-based agricultural advice.
 
